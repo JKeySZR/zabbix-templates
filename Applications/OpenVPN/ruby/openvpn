@@ -1,0 +1,103 @@
+#!/usr/bin/env ruby
+
+require 'json'
+
+dbg = 0
+
+if ARGV.length < 2
+  puts "Too few arguments"
+  exit
+end
+
+cmd = ARGV[0]
+@vpn_log_status = ARGV[1]
+
+
+@stats = Hash.new()
+
+
+def parse_client_list(line)
+  # [0] Common Name,
+  # [1] Real Address,
+  # [2] Bytes Received,
+  # [3] Bytes Sent,
+  # [4] Connected Since
+  data = line.split(/,/)
+  common_name, real_address, bytes_received, bytes_sent, connected = line.split(/,/)
+  #ip, port = data[1].split(":")
+  ip, port = real_address.split(":")
+  @stats[common_name] = {
+    :common_name => common_name,
+    :bytes_received => bytes_received,
+    :bytes_sent => bytes_sent
+  }
+end
+
+def parse_routing_list(line)
+  # [0] Virtual Address,
+  # [1] Common Name,
+  # [2] Real Address,
+  # [3] Last Ref
+
+  data = line.split(/,/)
+  virtual_address, common_name, real_address, last_ref = line.split(/,/)
+  #ip, port = data[1].split(":")
+  ip, port = real_address.split(":")
+  @stats[common_name][:vip] = virtual_address
+end
+
+def openvpn_status_parse
+  routing_list = false
+  client_list = false
+
+  File.open(@vpn_log_status, "r").each_line do |line|
+    next if line.start_with?('OpenVPN')
+    next if line.start_with?('Updated')
+
+    if line.start_with?('Common Name')
+      client_list = true
+      next
+    end
+
+    if line.start_with?('ROUTING TABLE')
+      client_list = false
+      next
+    end
+
+    if line.start_with?('Virtual Address')
+      routing_list = true
+      next
+    end
+
+    break if line.start_with?('GLOBAL STATS')
+
+    parse_client_list(line) if client_list
+    parse_routing_list(line) if routing_list
+  end
+
+
+end
+
+def lld
+  data = [];
+  @stats.each do|item|
+    dbg = 0
+    tmp_hash = {"{#COMMON_NAME}" => item[0]}
+    data.push(tmp_hash)
+  end
+  lld_data = {'data' => data}
+  puts JSON.pretty_generate(lld_data)
+end
+
+case cmd
+when 'lld'
+  dbg = 0
+  openvpn_status_parse
+  lld
+when 'stats'
+  openvpn_status_parse
+  puts JSON.pretty_generate(@stats)
+else
+
+end
+
