@@ -1,5 +1,13 @@
 #!/usr/bin/env ruby
 
+# Parse OpenVPN log status file for Zabbix monitoring
+# Author Bocharov-MS
+# Site: Bocharov.pw
+# e-mail: src@bocharov.pw
+# https://github.com/JKeySZR/zabbix-templates/tree/main/Applications/OpenVPN
+
+
+
 require 'json'
 
 dbg = 0

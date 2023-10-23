@@ -1,0 +1,103 @@
+zabbix_export:
+  version: '6.0'
+  date: '2023-10-23T05:03:34Z'
+  groups:
+    -
+      uuid: 166d9be9d07d4ec598b46b002ccd43c7
+      name: 'VPN Server'
+  templates:
+    -
+      uuid: a536b6f9ed9045998a73c91a9e548148
+      template: OpenVpnNG
+      name: OpenVpnNG
+      groups:
+        -
+          name: 'VPN Server'
+      items:
+        -
+          uuid: 177cb9da23bf414e815ab1e9f912792c
+          name: 'OpenVPN: status.log'
+          key: 'openvpn.traffic[stats,/var/log/openvpn/openvpn-status.log]'
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+      discovery_rules:
+        -
+          uuid: b1a5f83b9e314f6da766e57eeb41a326
+          name: 'Discover Connected Users'
+          key: 'openvpn.traffic[lld,/var/log/openvpn/openvpn-status.log]'
+          item_prototypes:
+            -
+              uuid: 233a9057576e4c4eb410e1333c05a15d
+              name: 'Traffic(Received): {#COMMON_NAME}'
+              type: DEPENDENT
+              key: 'traffic[{#COMMON_NAME},received]'
+              delay: '0'
+              units: B
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$["{#COMMON_NAME}"][''bytes_received'']'
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '8'
+                -
+                  type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              master_item:
+                key: 'openvpn.traffic[stats,/var/log/openvpn/openvpn-status.log]'
+              tags:
+                -
+                  tag: Application
+                  value: OpenVPN
+            -
+              uuid: 2d71ad0eebd040a193efbdec0be86e90
+              name: 'Traffic(Sent): {#COMMON_NAME}'
+              type: DEPENDENT
+              key: 'traffic[{#COMMON_NAME},sent]'
+              delay: '0'
+              units: B
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$["{#COMMON_NAME}"][''bytes_sent'']'
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '8'
+                -
+                  type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              master_item:
+                key: 'openvpn.traffic[stats,/var/log/openvpn/openvpn-status.log]'
+              tags:
+                -
+                  tag: Application
+                  value: OpenVPN
+          graph_prototypes:
+            -
+              uuid: f933adb76e974c27805bd441c7533b03
+              name: 'OpenVPN traffic: {#COMMON_NAME}'
+              show_work_period: 'NO'
+              show_triggers: 'NO'
+              graph_items:
+                -
+                  drawtype: GRADIENT_LINE
+                  color: 80FF00
+                  calc_fnc: MAX
+                  item:
+                    host: OpenVpnNG
+                    key: 'traffic[{#COMMON_NAME},received]'
+                -
+                  sortorder: '1'
+                  drawtype: GRADIENT_LINE
+                  color: 0080FF
+                  calc_fnc: MAX
+                  item:
+                    host: OpenVpnNG
+                    key: 'traffic[{#COMMON_NAME},sent]'
